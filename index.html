@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<!-- Метатеги для полноэкранного режима на iOS -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Калькулятор">
+<link rel="manifest" href="manifest.json">
+
+<style>
+  * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; }
+  body {
+    background-color: #000;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  #display {
+    color: #fff;
+    font-size: 80px;
+    font-weight: 300;
+    text-align: right;
+    margin-bottom: 20px;
+    padding: 0 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 14px;
+    width: 100%;
+  }
+  button {
+    border: none;
+    outline: none;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    font-size: 34px;
+    font-weight: 400;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.1s;
+    width: 100%;
+  }
+  button:active { filter: brightness(140%); }
+  .btn-gray { background-color: #a5a5a5; color: #000; }
+  .btn-dark { background-color: #333333; color: #fff; }
+  .btn-orange { background-color: #fe9e09; color: #fff; font-size: 40px; }
+  .btn-zero { grid-column: span 2; aspect-ratio: auto; height: auto; border-radius: 40px; justify-content: flex-start; padding-left: 32px; }
+</style>
+</head>
+<body>
+
+<div id="display">0</div>
+
+<div class="grid">
+  <button class="btn-gray" onclick="press('AC')">AC</button>
+  <button class="btn-gray" onclick="press('+/-')">±</button>
+  <button class="btn-gray" onclick="press('%')">%</button>
+  <button class="btn-orange" onclick="press('/')">÷</button>
+
+  <button class="btn-dark" onclick="press('7')">7</button>
+  <button class="btn-dark" onclick="press('8')">8</button>
+  <button class="btn-dark" onclick="press('9')">9</button>
+  <button class="btn-orange" onclick="press('*')">×</button>
+
+  <button class="btn-dark" onclick="press('4')">4</button>
+  <button class="btn-dark" onclick="press('5')">5</button>
+  <button class="btn-dark" onclick="press('6')">6</button>
+  <button class="btn-orange" onclick="press('-')">−</button>
+
+  <button class="btn-dark" onclick="press('1')">1</button>
+  <button class="btn-dark" onclick="press('2')">2</button>
+  <button class="btn-dark" onclick="press('3')">3</button>
+  <button class="btn-orange" onclick="press('+')">+</button>
+
+  <button class="btn-dark btn-zero" onclick="press('0')">0</button>
+  <button class="btn-dark" onclick="press('.')">,</button>
+  <button class="btn-orange" onclick="press('=')">=</button>
+</div>
+
+<script>
+  let currentVal = "0";
+  let expression = "";
+  let resetNext = false;
+  let locked = false;
+  let magicValue = ""; 
+
+  const display = document.getElementById('display');
+
+  function updateDisplay() {
+    display.innerText = currentVal;
+  }
+
+  function getTargetDateTimePlusOne() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 1); // +1 минута вперед
+    
+    const pad = (num) => String(num).padStart(2, '0');
+    const day = pad(now.getDate());
+    const month = pad(now.getMonth() + 1);
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    
+    // Формат ДДММЧЧММ без года
+    return parseInt(`${day}${month}${hours}${minutes}`, 10);
+  }
+
+  function press(key) {
+    if (key === 'AC') {
+      currentVal = "0";
+      expression = "";
+      resetNext = false;
+      locked = false;
+      magicValue = "";
+      updateDisplay();
+      return;
+    }
+
+    // РЕЖИМ БЛОКИРОВКИ: разблокировка строго по кнопке «,»
+    if (locked) {
+      if (key === '.') {
+        locked = false;
+        currentVal = magicValue; // Выводим высчитанное N
+        resetNext = false;
+        updateDisplay();
+        return;
+      }
+      return;
+    }
+
+    if (key === '=') {
+      try {
+        let fullExpr = expression + currentVal;
+        let evalResult = eval(fullExpr.replace(/×/g, '*').replace(/÷/g, '/'));
+        currentVal = String(evalResult);
+        expression = "";
+        resetNext = true;
+      } catch (e) {
+        currentVal = "Error";
+        expression = "";
+      }
+    } else if (['+', '-', '*', '/'].includes(key)) {
+      if (key === '+' && !locked) {
+        try {
+          let currentValueNum = parseFloat(currentVal);
+          let targetNum = getTargetDateTimePlusOne();
+          
+          let neededValue = targetNum - currentValueNum;
+          
+          magicValue = String(neededValue);
+          expression = currentVal + " + ";
+          
+          locked = true;
+          resetNext = true;
+          return;
+        } catch (err) {}
+      }
+
+      expression += currentVal + " " + key + " ";
+      resetNext = true;
+    } else {
+      if (currentVal === "0" || resetNext) {
+        currentVal = key;
+        resetNext = false;
+      } else {
+        currentVal += key;
+      }
+    }
+    updateDisplay();
+  }
+</script>
+</body>
+</html>
