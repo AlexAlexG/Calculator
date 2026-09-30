@@ -2,19 +2,13 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<!-- Метатеги для полноэкранного режима на iOS -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Калькулятор">
-
-<!-- Ссылка на иконку для iOS -->
 <link rel="apple-touch-icon" href="IMG_5213.webp">
- 
 <link rel="manifest" href="manifest.json">
 
-
- 
 <style>
   * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; }
   body {
@@ -31,14 +25,15 @@
   }
   #display {
     color: #fff;
-    font-size: 80px;
+    font-size: 72px;
     font-weight: 300;
     text-align: right;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     padding: 0 10px;
-    overflow-x: auto;
+    overflow-x: hidden;
     white-space: nowrap;
     width: 100%;
+    letter-spacing: 0.5px;
   }
   .grid {
     display: grid;
@@ -106,13 +101,39 @@
 
   const display = document.getElementById('display');
 
+  // Форматирование числа с пробелами по стандартам iOS
+  function formatNumber(strNum) {
+    if (strNum === "Error" || strNum === "") return strNum;
+    
+    let parts = strNum.split('.');
+    let integerPart = parts[0];
+    let decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+
+    // Разделяем тысячи пробелами
+    let formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return formatted + decimalPart;
+  }
+
   function updateDisplay() {
-    display.innerText = currentVal;
+    let formattedStr = formatNumber(currentVal);
+    display.innerText = formattedStr;
+
+    // Динамическое уменьшение шрифта при длинных числах
+    let len = formattedStr.length;
+    if (len > 11) {
+      display.style.fontSize = "42px";
+    } else if (len > 8) {
+      display.style.fontSize = "54px";
+    } else if (len > 6) {
+      display.style.fontSize = "64px";
+    } else {
+      display.style.fontSize = "72px";
+    }
   }
 
   function getTargetDateTimePlusOne() {
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 1); // +1 минута вперед
+    now.setMinutes(now.getMinutes() + 1);
     
     const pad = (num) => String(num).padStart(2, '0');
     const day = pad(now.getDate());
@@ -120,7 +141,6 @@
     const hours = pad(now.getHours());
     const minutes = pad(now.getMinutes());
     
-    // Формат ДДММЧЧММ без года
     return parseInt(`${day}${month}${hours}${minutes}`, 10);
   }
 
@@ -135,11 +155,10 @@
       return;
     }
 
-    // РЕЖИМ БЛОКИРОВКИ: разблокировка строго по кнопке «,»
     if (locked) {
       if (key === '.') {
         locked = false;
-        currentVal = magicValue; // Выводим высчитанное N
+        currentVal = magicValue;
         resetNext = false;
         updateDisplay();
         return;
