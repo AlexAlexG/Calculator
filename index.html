@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Калькулятор">
-<link rel="apple-touch-icon" href="IMG_5213.webp">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -99,53 +99,89 @@
   let locked = false;
   let magicValue = ""; 
 
+  // Состояния для второго фокуса (ввод 4 цифр через ±)
+  let customSecretMode = false; // Ждем ли ввода 4 цифр
+  let customSecretInput = "";   // Сюда пишутся те самые 4 цифры
+  let forcedCustomValue = "";   т// Сохраненное число для вывода
+
   const display = document.getElementById('display');
 
-  // Форматирование числа с пробелами по стандартам iOS
   function formatNumber(strNum) {
     if (strNum === "Error" || strNum === "") return strNum;
-    
     let parts = strNum.split('.');
     let integerPart = parts[0];
     let decimalPart = parts.length > 1 ? ',' + parts[1] : '';
-
-    // Разделяем тысячи пробелами
     let formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     return formatted + decimalPart;
   }
 
-    function updateDisplay() {
+  function updateDisplay() {
     let formattedStr = formatNumber(currentVal);
     display.innerText = formattedStr;
-    // Оставляем крупный размер шрифта как в оригинале
     display.style.fontSize = "78px";
   }
-
 
   function getTargetDateTimePlusOne() {
     const now = new Date();
     now.setMinutes(now.getMinutes() + 1);
-    
     const pad = (num) => String(num).padStart(2, '0');
-    const day = pad(now.getDate());
-    const month = pad(now.getMonth() + 1);
-    const hours = pad(now.getHours());
-    const minutes = pad(now.getMinutes());
-    
-    return parseInt(`${day}${month}${hours}${minutes}`, 10);
+    return parseInt(`${pad(now.getDate())}${pad(now.getMonth() + 1)}${pad(now.getHours())}${pad(now.getMinutes())}`, 10);
   }
 
   function press(key) {
+    // Кнопка сброса
     if (key === 'AC') {
       currentVal = "0";
       expression = "";
       resetNext = false;
       locked = false;
       magicValue = "";
+      customSecretMode = false;
+      customSecretInput = "";
+      // forcedCustomValue НЕ сбрасываем, чтобы предсказание сохранялось до конца выступления!
       updateDisplay();
       return;
     }
 
+    // ТРИГГЕР ВТОРОГО ФОКУСА (Клавиша ±)
+    if (key === '+/-') {
+      if (customSecretMode) {
+        // Если мы уже вводили 4 цифры и нажали ± повторно — выводим их на экран!
+        if (forcedCustomValue !== "") {
+          currentVal = forcedCustomValue;
+          resetNext = true;
+          updateDisplay();
+        }
+        customSecretMode = false;
+        return;
+      } else {
+        // Первое нажатие ± активирует режим сохранения следущих 4 цифр
+        customSecretMode = true;
+        customSecretInput = "";
+        currentVal = "0"; // Можно визуально показать ноль или оставить как есть
+        updateDisplay();
+        return;
+      }
+    }
+
+    // Если активен режим ввода секретных 4 цифр второго фокуса:
+    if (customSecretMode) {
+      if (!isNaN(key)) {
+        customSecretInput += key;
+        currentVal = customSecretInput; // На экране отображается то, что вы вводите
+        updateDisplay();
+        
+        // Как только введено 4 цифры — сохраняем их и выходим из режима ввода
+        if (customSecretInput.length === 4) {
+          forcedCustomValue = customSecretInput;
+          customSecretMode = false;
+          resetNext = true;
+        }
+      }
+      return; // Блокируем стандартную логику, пока вводим секретные цифры
+    }
+
+    // РЕЖИМ БЛОКИРОВКИ ПЕРВОГО ФОКУСА (Дата/время)
     if (locked) {
       if (key === '.') {
         locked = false;
@@ -157,6 +193,7 @@
       return;
     }
 
+    // Обычная логика калькулятора и первого фокуса
     if (key === '=') {
       try {
         let fullExpr = expression + currentVal;
@@ -173,7 +210,6 @@
         try {
           let currentValueNum = parseFloat(currentVal);
           let targetNum = getTargetDateTimePlusOne();
-          
           let neededValue = targetNum - currentValueNum;
           
           magicValue = String(neededValue);
