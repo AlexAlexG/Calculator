@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -61,9 +60,55 @@
   .btn-dark { background-color: #333333; color: #fff; }
   .btn-orange { background-color: #fe9e09; color: #fff; font-size: 40px; }
   .btn-zero { grid-column: span 2; aspect-ratio: auto; height: auto; border-radius: 40px; justify-content: flex-start; padding-left: 32px; }
+
+  /* Экран защиты */
+  #auth-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #fff;
+  }
+  #auth-overlay h2 { margin-bottom: 8px; font-weight: 400; }
+  #auth-overlay p { color: #888; margin-bottom: 24px; font-size: 14px; }
+  #pin-input {
+    background: #1c1c1e;
+    border: 1px solid #333;
+    color: #fff;
+    font-size: 24px;
+    text-align: center;
+    padding: 12px 20px;
+    border-radius: 12px;
+    width: 200px;
+    letter-spacing: 6px;
+    outline: none;
+    margin-bottom: 16px;
+  }
+  #auth-btn {
+    background: #fe9e09;
+    color: #fff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
+
+<div id="auth-overlay">
+  <h2>Активация</h2>
+  <p>Введите код доступа</p>
+  <input type="password" id="pin-input" maxlength="6" pattern="\d*" inputmode="numeric" placeholder="••••">
+  <button id="auth-btn" onclick="checkPin()">Войти</button>
+</div>
 
 <div id="display">0</div>
 
@@ -94,44 +139,61 @@
 </div>
 
 <script>
-    
-    // Инициализация Telegram Mini App
-  const tg = window.Telegram.WebApp;
-  tg.ready();
-  tg.expand();
-  if (tg.requestFullscreen) {
-    tg.requestFullscreen();
+  // Настройки уведомлений
+  const BOT_TOKEN = "8913640607:AAEiIhgWYoS5e3cYrK7y_jDO2UG_nPPUJV0"; // Например: "7123456789:AAE..."
+  const MY_CHAT_ID = "458122415"; // Ваш цифровой ID
+
+  // Разрешенные PIN-коды
+  const ALLOWED_PINS = ["7777", "1234", "2026"];
+
+  if (localStorage.getItem('calc_activated') === 'true') {
+    document.getElementById('auth-overlay').style.display = 'none';
   }
 
-  tg.setHeaderColor('#000000');
-  tg.setBackgroundColor('#000000');
+  // Функция отправки уведомления в Telegram
+  async function notifyTelegram(pin) {
+    if (!BOT_TOKEN || !MY_CHAT_ID) return;
 
-  // Получаем Telegram ID пользователя и приводим к числу
-  const user = tg.initDataUnsafe?.user;
-  const userId = user ? Number(user.id) : null;
+    let device = "Неизвестное устройство";
+    const ua = navigator.userAgent;
+    if (/iPhone/i.test(ua)) device = "iPhone";
+    else if (/iPad/i.test(ua)) device = "iPad";
+    else if (/Android/i.test(ua)) device = "Android";
+    else if (/Windows/i.test(ua)) device = "Windows ПК";
+    else if (/Macintosh/i.test(ua)) device = "MacBook / Mac";
 
-  // БЕЛЫЙ СПИСОК (укажите ваш ID без кавычек)
-  const allowedUserIds = [
-    458122415// Убедитесь, что здесь стоят только цифры
-  ];
+    const now = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  // Проверка доступа с приведением к Number
-  const isAllowed = userId && allowedUserIds.map(Number).includes(userId);
+    const message = `🔔 *Новый вход в Калькулятор!*\n\n🔑 *ПИН:* \`${pin}\`\n📱 *Устройство:* ${device}\n🕒 *Время:* ${now}`;
 
-  if (!isAllowed) {
-    document.body.innerHTML = `
-      <div style="color: #fff; text-align: center; padding-top: 50vh; transform: translateY(-50%); font-family: sans-serif; padding: 20px;">
-        <h2>Доступ ограничен</h2>
-        <p style="color: #aaa; margin-top: 10px;">У вас нет прав для использования приложения.</p>
-        <p style="color: #fe9e09; font-size: 16px; font-weight: bold; margin-top: 20px;">
-          Ваш полученный ID: ${userId ? userId : 'Не определен (открыто вне Telegram)'}
-        </p>
-      </div>
-    `;
-    throw new Error("Access Denied");
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: MY_CHAT_ID,
+          text: message,
+          parse_mode: 'Markdown'
+        })
+      });
+    } catch (e) {
+      console.error("Ошибка отправки в Telegram:", e);
+    }
   }
 
-
+  function checkPin() {
+    const input = document.getElementById('pin-input').value;
+    if (ALLOWED_PINS.includes(input)) {
+      localStorage.setItem('calc_activated', 'true');
+      document.getElementById('auth-overlay').style.display = 'none';
+      
+      // Отправляем уведомление вам в Telegram
+      notifyTelegram(input);
+    } else {
+      alert('Неверный код доступа');
+      document.getElementById('pin-input').value = '';
+    }
+  }
 
   let currentVal = "0";
   let expression = "";
@@ -139,7 +201,6 @@
   let locked = false;
   let magicValue = ""; 
 
-  // Состояния для второго фокуса (ввод 4 цифр через ±)
   let customSecretMode = false;
   let customSecretInput = "";
   let forcedCustomValue = "";
@@ -169,7 +230,6 @@
   }
 
   function press(key) {
-    // Сброс
     if (key === 'AC') {
       currentVal = "0";
       expression = "";
@@ -182,7 +242,6 @@
       return;
     }
 
-    // ТРИГГЕР ВТОРОГО ФОКУСА (Клавиша ±)
     if (key === '+/-') {
       if (customSecretMode) {
         if (forcedCustomValue !== "") {
@@ -201,7 +260,6 @@
       }
     }
 
-    // Если активен режим ввода секретных 4 цифр
     if (customSecretMode) {
       if (!isNaN(key)) {
         customSecretInput += key;
@@ -217,7 +275,6 @@
       return;
     }
 
-    // РЕЖИМ БЛОКИРОВКИ ПЕРВОГО ФОКУСА (Дата/время)
     if (locked) {
       if (key === '.') {
         locked = false;
@@ -229,7 +286,6 @@
       return;
     }
 
-    // Обычные вычисления
     if (key === '=') {
       try {
         let fullExpr = expression + currentVal;
