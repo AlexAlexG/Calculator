@@ -100,9 +100,9 @@
   let magicValue = ""; 
 
   // Состояния для второго фокуса (ввод 4 цифр через ±)
-  let customSecretMode = false; // Ждем ли ввода 4 цифр
-  let customSecretInput = "";   // Сюда пишутся те самые 4 цифры
-  let forcedCustomValue = "";   т// Сохраненное число для вывода
+  let customSecretMode = false;
+  let customSecretInput = "";
+  let forcedCustomValue = "";
 
   const display = document.getElementById('display');
 
@@ -129,7 +129,7 @@
   }
 
   function press(key) {
-    // Кнопка сброса
+    // Сброс
     if (key === 'AC') {
       currentVal = "0";
       expression = "";
@@ -138,7 +138,6 @@
       magicValue = "";
       customSecretMode = false;
       customSecretInput = "";
-      // forcedCustomValue НЕ сбрасываем, чтобы предсказание сохранялось до конца выступления!
       updateDisplay();
       return;
     }
@@ -146,7 +145,6 @@
     // ТРИГГЕР ВТОРОГО ФОКУСА (Клавиша ±)
     if (key === '+/-') {
       if (customSecretMode) {
-        // Если мы уже вводили 4 цифры и нажали ± повторно — выводим их на экран!
         if (forcedCustomValue !== "") {
           currentVal = forcedCustomValue;
           resetNext = true;
@@ -155,30 +153,28 @@
         customSecretMode = false;
         return;
       } else {
-        // Первое нажатие ± активирует режим сохранения следущих 4 цифр
         customSecretMode = true;
         customSecretInput = "";
-        currentVal = "0"; // Можно визуально показать ноль или оставить как есть
+        currentVal = "0";
         updateDisplay();
         return;
       }
     }
 
-    // Если активен режим ввода секретных 4 цифр второго фокуса:
+    // Если активен режим ввода секретных 4 цифр
     if (customSecretMode) {
       if (!isNaN(key)) {
         customSecretInput += key;
-        currentVal = customSecretInput; // На экране отображается то, что вы вводите
+        currentVal = customSecretInput;
         updateDisplay();
         
-        // Как только введено 4 цифры — сохраняем их и выходим из режима ввода
         if (customSecretInput.length === 4) {
           forcedCustomValue = customSecretInput;
           customSecretMode = false;
           resetNext = true;
         }
       }
-      return; // Блокируем стандартную логику, пока вводим секретные цифры
+      return;
     }
 
     // РЕЖИМ БЛОКИРОВКИ ПЕРВОГО ФОКУСА (Дата/время)
@@ -193,7 +189,7 @@
       return;
     }
 
-    // Обычная логика калькулятора и первого фокуса
+    // Обычные вычисления
     if (key === '=') {
       try {
         let fullExpr = expression + currentVal;
