@@ -94,6 +94,7 @@
 </div>
 
 <script>
+    
     // Инициализация Telegram Mini App
   const tg = window.Telegram.WebApp;
   tg.ready();
@@ -102,30 +103,34 @@
     tg.requestFullscreen();
   }
 
-  // Настраиваем цвета шапки и фона Telegram под стиль калькулятора
   tg.setHeaderColor('#000000');
   tg.setBackgroundColor('#000000');
 
-  // Получаем уникальный Telegram ID пользователя
+  // Получаем Telegram ID пользователя и приводим к числу
   const user = tg.initDataUnsafe?.user;
-  const userId = user ? user.id : null;
+  const userId = user ? Number(user.id) : null;
 
-  // БЕЛЫЙ СПИСОК (укажите ваш Telegram ID)
+  // БЕЛЫЙ СПИСОК (укажите ваш ID без кавычек)
   const allowedUserIds = [
-    458122415 // Замените на ваш ID
+    458122415 // Убедитесь, что здесь стоят только цифры
   ];
 
-  // Проверка доступа
-  if (!userId || !allowedUserIds.includes(userId)) {
+  // Проверка доступа с приведением к Number
+  const isAllowed = userId && allowedUserIds.map(Number).includes(userId);
+
+  if (!isAllowed) {
     document.body.innerHTML = `
       <div style="color: #fff; text-align: center; padding-top: 50vh; transform: translateY(-50%); font-family: sans-serif; padding: 20px;">
         <h2>Доступ ограничен</h2>
-        <p>У вас нет прав для использования этого приложения.</p>
-        <p style="color: #666; font-size: 14px;">Ваш Telegram ID: ${userId || 'не определен'}</p>
+        <p style="color: #aaa; margin-top: 10px;">У вас нет прав для использования приложения.</p>
+        <p style="color: #fe9e09; font-size: 16px; font-weight: bold; margin-top: 20px;">
+          Ваш полученный ID: ${userId ? userId : 'Не определен (открыто вне Telegram)'}
+        </p>
       </div>
     `;
     throw new Error("Access Denied");
   }
+
 
 
   let currentVal = "0";
