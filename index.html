@@ -94,25 +94,29 @@
 </div>
 
 <script>
-  // Инициализация Telegram Mini App
+    // Инициализация Telegram Mini App
   const tg = window.Telegram.WebApp;
   tg.ready();
-  tg.expand(); // Разворачиваем на весь экран
+  tg.expand();
+  if (tg.requestFullscreen) {
+    tg.requestFullscreen();
+  }
+
+  // Настраиваем цвета шапки и фона Telegram под стиль калькулятора
+  tg.setHeaderColor('#000000');
+  tg.setBackgroundColor('#000000');
 
   // Получаем уникальный Telegram ID пользователя
   const user = tg.initDataUnsafe?.user;
   const userId = user ? user.id : null;
 
-  // БЕЛЫЙ СПИСОК (сюда вносите Telegram ID людей, которым разрешен доступ)
-  // Ваш собственный ID и ID покупателей/артистов
+  // БЕЛЫЙ СПИСОК (укажите ваш Telegram ID)
   const allowedUserIds = [
-    458122415, // Замените на ваш настоящий Telegram ID
-    // 987654321  // ID второго разрешенного пользователя
+    123456789 // Замените на ваш ID
   ];
 
   // Проверка доступа
   if (!userId || !allowedUserIds.includes(userId)) {
-    // Если пользователя нет в списке — показываем экран блокировки
     document.body.innerHTML = `
       <div style="color: #fff; text-align: center; padding-top: 50vh; transform: translateY(-50%); font-family: sans-serif; padding: 20px;">
         <h2>Доступ ограничен</h2>
@@ -122,6 +126,7 @@
     `;
     throw new Error("Access Denied");
   }
+
 
   let currentVal = "0";
   let expression = "";
