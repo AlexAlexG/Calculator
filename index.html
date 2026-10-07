@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -93,6 +94,35 @@
 </div>
 
 <script>
+  // Инициализация Telegram Mini App
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand(); // Разворачиваем на весь экран
+
+  // Получаем уникальный Telegram ID пользователя
+  const user = tg.initDataUnsafe?.user;
+  const userId = user ? user.id : null;
+
+  // БЕЛЫЙ СПИСОК (сюда вносите Telegram ID людей, которым разрешен доступ)
+  // Ваш собственный ID и ID покупателей/артистов
+  const allowedUserIds = [
+    458122415, // Замените на ваш настоящий Telegram ID
+    // 987654321  // ID второго разрешенного пользователя
+  ];
+
+  // Проверка доступа
+  if (!userId || !allowedUserIds.includes(userId)) {
+    // Если пользователя нет в списке — показываем экран блокировки
+    document.body.innerHTML = `
+      <div style="color: #fff; text-align: center; padding-top: 50vh; transform: translateY(-50%); font-family: sans-serif; padding: 20px;">
+        <h2>Доступ ограничен</h2>
+        <p>У вас нет прав для использования этого приложения.</p>
+        <p style="color: #666; font-size: 14px;">Ваш Telegram ID: ${userId || 'не определен'}</p>
+      </div>
+    `;
+    throw new Error("Access Denied");
+  }
+
   let currentVal = "0";
   let expression = "";
   let resetNext = false;
